@@ -1,0 +1,11 @@
+# Cache
+**/__pycache__/
+
+# Virtual environment
+**/.venv/
+
+# Environment variables
+**/.env
+
+# Data users
+**/users.json
