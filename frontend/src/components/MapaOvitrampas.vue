@@ -4,14 +4,45 @@
     <v-card-title class="text-h4 mb-4">Mapa de calor Ovitrampas</v-card-title>
     <p class="text-body-1">Ubicación y cantidad de huevos</p>
 
-    <!-- Botón para actualizar -->
     <div class="text-center mt-4">
       <v-btn color="primary" @click="cargarMapa" prepend-icon="mdi-refresh">
         Actualizar mapa
       </v-btn>
     </div>
   </div>
+
+  <!-- Mapa -->
   <div ref="mapContainer" class="map-container" />
+
+  <!-- Tabla -->
+  <v-card class="mt-8">
+    <v-card-title>Tabla de Ovitrampas</v-card-title>
+    <v-data-table
+      :headers="headers"
+      :items="ovitrampasData"
+      class="elevation-1"
+      :items-per-page="5"
+    >
+      <template #item="{ item, index }">
+        <!-- Fila descriptiva -->
+        <tr v-if="index === 0" style="font-weight: bold; background-color: #f0f0f0">
+          <td>—</td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.lat }}</td>
+          <td>{{ item.lng }}</td>
+          <td>{{ item.huevos }}</td>
+        </tr>
+        <!-- Filas normales -->
+        <tr v-else>
+          <td>{{ index }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.lat }}</td>
+          <td>{{ item.lng }}</td>
+          <td>{{ item.huevos }}</td>
+        </tr>
+      </template>
+    </v-data-table>
+  </v-card>
 </template>
 
 <script setup>
@@ -21,25 +52,51 @@ import maplibregl from 'maplibre-gl'
 
 const mapContainer = ref(null)
 let map = null
-let markers = [] // ← para controlar los marcadores existentes
+let markers = []
 
-// 1. Obtener datos
+// Tabla
+const ovitrampasData = ref([])
+const headers = [
+  { text: '#', value: 'index' },
+  { text: 'Nombre', value: 'name' },
+  { text: 'Latitud', value: 'lat' },
+  { text: 'Longitud', value: 'lng' },
+  { text: 'Huevos', value: 'huevos' },
+]
+
+// Obtener datos del backend
 const fetchOvitrampas = async () => {
   const response = await axios.get('http://127.0.0.1:5000/api/ovitrampas')
   const raw = response.data
+
+  // Agrega una fila descriptiva al inicio
+  ovitrampasData.value = [
+    {
+      name: 'Nombre de la ovitrampa',
+      lat: 'Latitud (coordenada Y)',
+      lng: 'Longitud (coordenada X)',
+      huevos: 'Número de huevos detectados',
+    },
+    ...raw.map(([name, lat, lng, huevos]) => ({ name, lat, lng, huevos })),
+  ]
+
+  // Devuelve datos para el mapa
   return {
     type: 'FeatureCollection',
-    features: raw.map(([lat, lng, huevos]) => ({
+    features: raw.map(([name, lat, lng, huevos]) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [lng, lat] },
-      properties: { weight: huevos, description: `Huevos: ${huevos}` }
-    }))
+      properties: {
+        name,
+        weight: huevos,
+        description: `<strong>${name}</strong><br>Huevos: ${huevos}`,
+      },
+    })),
   }
 }
 
-// 2. Limpiar y agregar marcadores
+// Agregar marcadores
 const addMarkers = (features) => {
-  // Limpiar marcadores anteriores
   markers.forEach(marker => marker.remove())
   markers = []
 
@@ -48,14 +105,14 @@ const addMarkers = (features) => {
     const { description } = feature.properties
     const marker = new maplibregl.Marker({ color: 'red' })
       .setLngLat([lng, lat])
-      .setPopup(new maplibregl.Popup().setHTML(`<strong>${description}</strong>`))
+      .setPopup(new maplibregl.Popup().setHTML(description))
       .addTo(map)
 
     markers.push(marker)
   })
 }
 
-// 3. Cargar/actualizar datos en el mapa
+// Cargar mapa
 const cargarMapa = async () => {
   const geojsonData = await fetchOvitrampas()
 
@@ -81,19 +138,19 @@ const cargarMapa = async () => {
           0.4, 'yellow',
           0.6, 'orange',
           0.8, 'red',
-          1, 'darkred'
-        ]
-      }
+          1, 'darkred',
+        ],
+      },
     })
   } else {
     map.getSource('ovitrampas').setData(geojsonData)
   }
 
   addMarkers(geojsonData.features)
-  map.resize() // ← Soluciona distorsión
+  map.resize()
 }
 
-// 4. Inicializar mapa
+// Inicializar mapa
 onMounted(() => {
   map = new maplibregl.Map({
     container: mapContainer.value,

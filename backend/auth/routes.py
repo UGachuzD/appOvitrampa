@@ -16,10 +16,11 @@ def get_ovitrampa_data():
         with open(data_file, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
+                name = row['nombre']
                 lat = float(row['latitud'])
                 lng = float(row['longitud'])
                 intensity = int(row['huevos'])  # Usado como peso en el heatmap
-                points.append([lat, lng, intensity])
+                points.append([name, lat, lng, intensity])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     return jsonify(points)
