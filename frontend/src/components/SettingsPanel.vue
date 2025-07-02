@@ -46,39 +46,48 @@
           </v-col>
 
           <!-- Activar botón Modo Instantáneo -->
-          <v-col cols="12" class="text-center mt-4">
-            <v-btn
-              :disabled="modoActivo"
-              color="success"
-              variant="tonal"
-              rounded="lg"
-              @click="activarModoInstantaneo"
-              prepend-icon="mdi-flash"
-            >
-              {{
-                modoActivo
-                  ? `Modo activo (${contador}s)`
-                  : "Activar Modo Instantáneo"
-              }}
-            </v-btn>
-          </v-col>
+          <!-- Botones alineados -->
+          <v-col cols="12">
+            <v-row justify="center" align="center" class="mt-4" dense>
+              <v-col cols="12" md="6" class="d-flex justify-center">
+                <v-btn
+                  :disabled="modoActivo"
+                  color="success"
+                  variant="tonal"
+                  rounded="lg"
+                  class="ma-2"
+                  @click="activarModoInstantaneo"
+                  prepend-icon="mdi-flash"
+                >
+                  {{
+                    modoActivo
+                      ? `Modo activo (${contador}s)`
+                      : "Activar Modo Instantáneo"
+                  }}
+                </v-btn>
+              </v-col>
 
-          <!-- Guardar configuración -->
-          <v-col cols="12" class="text-center mt-6">
-            <v-btn
-              color="primary"
-              type="submit"
-              :loading="cargando"
-              size="large"
-              rounded="xl"
-              class="action-btn"
-              prepend-icon="mdi-cloud-upload"
-            >
-              <template v-slot:loader>
-                <v-progress-circular indeterminate color="white" size="24" />
-              </template>
-              {{ cargando ? "Actualizando..." : "Guardar Configuración" }}
-            </v-btn>
+              <v-col cols="12" md="6" class="d-flex justify-center">
+                <v-btn
+                  color="primary"
+                  type="submit"
+                  :loading="cargando"
+                  size="large"
+                  rounded="lg"
+                  class="ma-2"
+                  prepend-icon="mdi-cloud-upload"
+                >
+                  <template v-slot:loader>
+                    <v-progress-circular
+                      indeterminate
+                      color="white"
+                      size="24"
+                    />
+                  </template>
+                  {{ cargando ? "Actualizando..." : "Guardar Configuración" }}
+                </v-btn>
+              </v-col>
+            </v-row>
           </v-col>
         </v-row>
       </v-form>

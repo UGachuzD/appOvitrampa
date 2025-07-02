@@ -3,7 +3,7 @@
       <v-app-bar-nav-icon variant="text" @click.stop="toggleDrawer" />
       <v-toolbar-title class="text-h5 font-weight-bold">Dashboard</v-toolbar-title>
       <v-spacer />
-      <v-btn icon><v-icon>mdi-bell-outline</v-icon></v-btn>
+      <!-- <v-btn icon><v-icon>mdi-bell-outline</v-icon></v-btn> -->
       <v-menu location="bottom">
         <template #activator="{ props }">
           <v-btn icon v-bind="props">
@@ -11,7 +11,7 @@
           </v-btn>
         </template>
         <v-list>
-          <v-list-item prepend-icon="mdi-cog" title="Configuración" @click="emit('navigate', 'settings')" />
+          <!-- <v-list-item prepend-icon="mdi-cog" title="Configuración" @click="emit('navigate', 'settings')" /> -->
           <v-list-item prepend-icon="mdi-logout" title="Cerrar sesión" @click="emit('logout')" />
         </v-list>
       </v-menu>
