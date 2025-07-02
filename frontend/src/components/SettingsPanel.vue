@@ -1,8 +1,218 @@
 <template>
-    <div class="text-center py-8">
-      <v-icon size="80" color="grey">mdi-cog</v-icon>
-      <h2 class="text-h3 my-4">Ajustes</h2>
-      <p class="text-body-1">Configuración del sistema</p>
+  <v-container class="py-8 px-4">
+    <!-- Hero -->
+    <div class="text-center mb-8">
+      <v-icon size="80" color="primary" class="mb-4 neon-icon"
+        >mdi-cog-sync</v-icon
+      >
+      <h2 class="text-h3 my-4 font-weight-bold gradient-text">
+        Panel de Control
+      </h2>
+      <p class="text-body-1 text-medium-emphasis">
+        Personaliza el comportamiento del sistema
+      </p>
     </div>
-  </template>
-  
+
+    <!-- Formulario -->
+    <v-card v-if="cargado" class="glass-card pa-6 mb-6" elevation="0">
+      <v-form @submit.prevent="actualizarConfiguracion">
+        <v-row dense>
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="ajustes.horasTomaFoto"
+              label="Horas entre capturas"
+              type="number"
+              min="0"
+              required
+              variant="outlined"
+              color="primary"
+              prepend-inner-icon="mdi-clock-outline"
+              class="animated-field"
+            />
+          </v-col>
+
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="ajustes.intervaloRevision"
+              label="Intervalo de revisión (segundos)"
+              type="number"
+              min="0"
+              required
+              variant="outlined"
+              color="primary"
+              prepend-inner-icon="mdi-timer-sand"
+              class="animated-field"
+            />
+          </v-col>
+
+          <!-- Activar botón Modo Instantáneo -->
+          <v-col cols="12" class="text-center mt-4">
+            <v-btn
+              :disabled="modoActivo"
+              color="success"
+              variant="tonal"
+              rounded="lg"
+              @click="activarModoInstantaneo"
+              prepend-icon="mdi-flash"
+            >
+              {{
+                modoActivo
+                  ? `Modo activo (${contador}s)`
+                  : "Activar Modo Instantáneo"
+              }}
+            </v-btn>
+          </v-col>
+
+          <!-- Guardar configuración -->
+          <v-col cols="12" class="text-center mt-6">
+            <v-btn
+              color="primary"
+              type="submit"
+              :loading="cargando"
+              size="large"
+              rounded="xl"
+              class="action-btn"
+              prepend-icon="mdi-cloud-upload"
+            >
+              <template v-slot:loader>
+                <v-progress-circular indeterminate color="white" size="24" />
+              </template>
+              {{ cargando ? "Actualizando..." : "Guardar Configuración" }}
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-form>
+    </v-card>
+
+    <!-- Alerta -->
+    <transition name="slide-fade">
+      <v-alert
+        v-if="mensaje"
+        :type="exito ? 'success' : 'error'"
+        class="floating-alert"
+        elevation="8"
+        :icon="exito ? 'mdi-check-circle' : 'mdi-alert-circle'"
+        closable
+        @click:close="mensaje = ''"
+      >
+        <strong>{{ mensaje }}</strong>
+      </v-alert>
+    </transition>
+  </v-container>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import axios from "axios";
+
+const urlControl =
+  "https://ovitrampa.blob.core.windows.net/imagenes-ovitrampa/control.json?sp=rw&st=2025-06-16T21:46:55Z&se=2025-07-26T05:46:55Z&sv=2024-11-04&sr=b&sig=AhjrVwUhsKjEX49GiLpbgiYBi6PbmDZwBJta2p5kBZI%3D";
+
+const ajustes = ref({
+  horasTomaFoto: null,
+  intervaloRevision: null,
+  tomaInstanteanea: false,
+});
+
+const jsonOriginal = ref({});
+const cargando = ref(false);
+const cargado = ref(false);
+const mensaje = ref("");
+const exito = ref(true);
+
+const modoActivo = ref(false);
+const contador = ref(10);
+let intervalo;
+
+const obtenerConfiguracion = async () => {
+  try {
+    const res = await axios.get(urlControl);
+    jsonOriginal.value = res.data;
+
+    ajustes.value.horasTomaFoto = res.data.horasTomaFoto;
+    ajustes.value.intervaloRevision = res.data.intervaloRevision;
+    ajustes.value.tomaInstanteanea = res.data.tomaInstanteanea === "Activado";
+
+    cargado.value = true;
+  } catch (error) {
+    mensaje.value = "Error al cargar configuración.";
+    exito.value = false;
+  }
+};
+
+const actualizarCampoInstantaneo = async (estado) => {
+  try {
+    const nuevoJson = {
+      ...jsonOriginal.value,
+      tomaInstanteanea: estado,
+    };
+
+    await axios.put(urlControl, JSON.stringify(nuevoJson), {
+      headers: {
+        "x-ms-blob-type": "BlockBlob",
+        "Content-Type": "application/json",
+      },
+    });
+
+    mensaje.value = `Modo Instantáneo ${
+      estado === "Activado" ? "activado" : "desactivado"
+    } correctamente.`;
+    exito.value = true;
+  } catch (err) {
+    mensaje.value = "Error al actualizar Modo Instantáneo.";
+    exito.value = false;
+  }
+};
+
+const activarModoInstantaneo = async () => {
+  modoActivo.value = true;
+  contador.value = 10;
+
+  // Actualiza a "Activado"
+  await actualizarCampoInstantaneo("Activado");
+
+  intervalo = setInterval(async () => {
+    contador.value--;
+
+    if (contador.value <= 0) {
+      clearInterval(intervalo);
+      modoActivo.value = false;
+
+      // Actualiza a "Desactivado"
+      await actualizarCampoInstantaneo("Desactivado");
+    }
+  }, 1000);
+};
+
+const actualizarConfiguracion = async () => {
+  cargando.value = true;
+  mensaje.value = "";
+  try {
+    const nuevoJson = {
+      ...jsonOriginal.value,
+      horasTomaFoto: parseInt(ajustes.value.horasTomaFoto, 10),
+      intervaloRevision: parseInt(ajustes.value.intervaloRevision, 10),
+      tomaInstanteanea: ajustes.value.tomaInstanteanea
+        ? "Activado"
+        : "Desactivado",
+    };
+
+    await axios.put(urlControl, JSON.stringify(nuevoJson), {
+      headers: {
+        "x-ms-blob-type": "BlockBlob",
+        "Content-Type": "application/json",
+      },
+    });
+
+    mensaje.value = "Configuración actualizada exitosamente.";
+    exito.value = true;
+  } catch (err) {
+    mensaje.value = "Error al actualizar configuración.";
+    exito.value = false;
+  } finally {
+    cargando.value = false;
+  }
+};
+
+onMounted(obtenerConfiguracion);
+</script>
