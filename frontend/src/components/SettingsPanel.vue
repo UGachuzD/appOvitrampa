@@ -17,6 +17,47 @@
     <v-card v-if="cargado" class="glass-card pa-6 mb-6" elevation="0">
       <v-form @submit.prevent="actualizarConfiguracion">
         <v-row dense>
+          <v-col cols="12" class="mt-2">
+  <v-checkbox
+    v-model="editarAzure"
+    label="Editar configuración avanzada de Azure"
+    color="primary"
+  />
+</v-col>
+
+<v-col cols="12" md="4">
+  <v-text-field
+    v-model="ajustes.blobBase"
+    label="Blob Base"
+    :disabled="!editarAzure"
+    variant="outlined"
+    color="deep-purple"
+    prepend-inner-icon="mdi-link"
+  />
+</v-col>
+
+<v-col cols="12" md="4">
+  <v-text-field
+    v-model="ajustes.sasTokenEscritura"
+    label="SAS Token Escritura"
+    :disabled="!editarAzure"
+    variant="outlined"
+    color="deep-purple"
+    prepend-inner-icon="mdi-key"
+  />
+</v-col>
+
+<v-col cols="12" md="4">
+  <v-text-field
+    v-model="ajustes.urlGestion"
+    label="URL Gestión"
+    :disabled="!editarAzure"
+    variant="outlined"
+    color="deep-purple"
+    prepend-inner-icon="mdi-file-document-edit"
+  />
+</v-col>
+
           <v-col cols="12" md="6">
             <v-text-field
               v-model="ajustes.horasTomaFoto"
@@ -114,13 +155,15 @@
 import { ref, onMounted } from "vue";
 import axios from "axios";
 
-const urlControl =
-  "https://ovitrampa.blob.core.windows.net/imagenes-ovitrampa/control.json?sp=rw&st=2025-06-16T21:46:55Z&se=2025-07-26T05:46:55Z&sv=2024-11-04&sr=b&sig=AhjrVwUhsKjEX49GiLpbgiYBi6PbmDZwBJta2p5kBZI%3D";
+const urlControl = "https://ovitrampa.blob.core.windows.net/imagenes-ovitrampa/control.json?sp=rw&st=2025-06-16T21:46:55Z&se=2025-07-26T05:46:55Z&sv=2024-11-04&sr=b&sig=AhjrVwUhsKjEX49GiLpbgiYBi6PbmDZwBJta2p5kBZI%3D";
 
 const ajustes = ref({
   horasTomaFoto: null,
   intervaloRevision: null,
   tomaInstanteanea: false,
+  blobBase: "",
+  sasTokenEscritura: "",
+  urlGestion: ""
 });
 
 const jsonOriginal = ref({});
@@ -133,6 +176,8 @@ const modoActivo = ref(false);
 const contador = ref(10);
 let intervalo;
 
+const editarAzure = ref(false);
+
 const obtenerConfiguracion = async () => {
   try {
     const res = await axios.get(urlControl);
@@ -141,6 +186,10 @@ const obtenerConfiguracion = async () => {
     ajustes.value.horasTomaFoto = res.data.horasTomaFoto;
     ajustes.value.intervaloRevision = res.data.intervaloRevision;
     ajustes.value.tomaInstanteanea = res.data.tomaInstanteanea === "Activado";
+
+    ajustes.value.blobBase = res.data.blobBase;
+    ajustes.value.sasTokenEscritura = res.data.sasTokenEscritura;
+    ajustes.value.urlGestion = res.data.urlGestion;
 
     cargado.value = true;
   } catch (error) {
@@ -163,9 +212,7 @@ const actualizarCampoInstantaneo = async (estado) => {
       },
     });
 
-    mensaje.value = `Modo Instantáneo ${
-      estado === "Activado" ? "activado" : "desactivado"
-    } correctamente.`;
+    mensaje.value = `Modo Instantáneo ${estado === "Activado" ? "activado" : "desactivado"} correctamente.`;
     exito.value = true;
   } catch (err) {
     mensaje.value = "Error al actualizar Modo Instantáneo.";
@@ -177,7 +224,6 @@ const activarModoInstantaneo = async () => {
   modoActivo.value = true;
   contador.value = 10;
 
-  // Actualiza a "Activado"
   await actualizarCampoInstantaneo("Activado");
 
   intervalo = setInterval(async () => {
@@ -187,7 +233,6 @@ const activarModoInstantaneo = async () => {
       clearInterval(intervalo);
       modoActivo.value = false;
 
-      // Actualiza a "Desactivado"
       await actualizarCampoInstantaneo("Desactivado");
     }
   }, 1000);
@@ -201,10 +246,14 @@ const actualizarConfiguracion = async () => {
       ...jsonOriginal.value,
       horasTomaFoto: parseInt(ajustes.value.horasTomaFoto, 10),
       intervaloRevision: parseInt(ajustes.value.intervaloRevision, 10),
-      tomaInstanteanea: ajustes.value.tomaInstanteanea
-        ? "Activado"
-        : "Desactivado",
+      tomaInstanteanea: ajustes.value.tomaInstanteanea ? "Activado" : "Desactivado",
     };
+
+    if (editarAzure.value) {
+      nuevoJson.blobBase = ajustes.value.blobBase;
+      nuevoJson.sasTokenEscritura = ajustes.value.sasTokenEscritura;
+      nuevoJson.urlGestion = ajustes.value.urlGestion;
+    }
 
     await axios.put(urlControl, JSON.stringify(nuevoJson), {
       headers: {
