@@ -150,12 +150,9 @@
     </transition>
   </v-container>
 </template>
-
 <script setup>
 import { ref, onMounted } from "vue";
 import axios from "axios";
-
-const urlControl = "https://ovitrampa.blob.core.windows.net/imagenes-ovitrampa/control.json?sp=rw&st=2025-06-16T21:46:55Z&se=2025-07-26T05:46:55Z&sv=2024-11-04&sr=b&sig=AhjrVwUhsKjEX49GiLpbgiYBi6PbmDZwBJta2p5kBZI%3D";
 
 const ajustes = ref({
   horasTomaFoto: null,
@@ -180,7 +177,7 @@ const editarAzure = ref(false);
 
 const obtenerConfiguracion = async () => {
   try {
-    const res = await axios.get(urlControl);
+    const res = await axios.get("http://127.0.0.1:5000/api/control");
     jsonOriginal.value = res.data;
 
     ajustes.value.horasTomaFoto = res.data.horasTomaFoto;
@@ -205,12 +202,8 @@ const actualizarCampoInstantaneo = async (estado) => {
       tomaInstanteanea: estado,
     };
 
-    await axios.put(urlControl, JSON.stringify(nuevoJson), {
-      headers: {
-        "x-ms-blob-type": "BlockBlob",
-        "Content-Type": "application/json",
-      },
-    });
+    const res = await axios.put("http://127.0.0.1:5000/api/control", nuevoJson);
+    jsonOriginal.value = res.data;
 
     mensaje.value = `Modo Instantáneo ${estado === "Activado" ? "activado" : "desactivado"} correctamente.`;
     exito.value = true;
@@ -241,6 +234,7 @@ const activarModoInstantaneo = async () => {
 const actualizarConfiguracion = async () => {
   cargando.value = true;
   mensaje.value = "";
+
   try {
     const nuevoJson = {
       ...jsonOriginal.value,
@@ -255,12 +249,8 @@ const actualizarConfiguracion = async () => {
       nuevoJson.urlGestion = ajustes.value.urlGestion;
     }
 
-    await axios.put(urlControl, JSON.stringify(nuevoJson), {
-      headers: {
-        "x-ms-blob-type": "BlockBlob",
-        "Content-Type": "application/json",
-      },
-    });
+    const res = await axios.put("http://127.0.0.1:5000/api/control", nuevoJson);
+    jsonOriginal.value = res.data;
 
     mensaje.value = "Configuración actualizada exitosamente.";
     exito.value = true;

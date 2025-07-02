@@ -1,30 +1,9 @@
 from flask import Blueprint, request, jsonify
 from .utils import load_users, save_users, verify_password, hash_password, generate_token
-import csv
 from flask import jsonify
 from flask import Blueprint
 
 auth_bp = Blueprint('auth', __name__)
-data_bp = Blueprint('data', __name__)
-
-@data_bp.route('/api/ovitrampas', methods=['GET'])
-def get_ovitrampa_data():
-    data_file = 'data/dataOvitrampas.csv'
-    points = []
-
-    try:
-        with open(data_file, newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                name = row['nombre']
-                lat = float(row['latitud'])
-                lng = float(row['longitud'])
-                intensity = int(row['huevos'])  # Usado como peso en el heatmap
-                points.append([name, lat, lng, intensity])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    return jsonify(points)
-
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
