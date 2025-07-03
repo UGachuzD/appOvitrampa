@@ -43,14 +43,14 @@
               class="mb-2"
             />
 
-            <div class="d-flex justify-end mb-4">
+            <!-- <div class="d-flex justify-end mb-4">
               <a
                 href="#"
                 class="text-caption text-primary text-decoration-none"
               >
                 ¿Olvidaste tu contraseña?
               </a>
-            </div>
+            </div> -->
 
             <v-btn
               :disabled="!formValid"
@@ -69,7 +69,7 @@
 
           <v-divider class="my-6" />
 
-          <div class="text-center">
+          <!-- <div class="text-center">
             <span class="text-caption text-disabled"
               >¿No tienes una cuenta?</span
             >
@@ -79,7 +79,7 @@
             >
               Regístrate ahora
             </a>
-          </div>
+          </div> -->
         </v-card>
 
         <!-- Snackbar mejorado -->

@@ -52,16 +52,22 @@ def actualizar_gestion():
             status = "Inactivo" if diff_minutes > 1 else "Activo"
 
             updated_data[device_id] = {
-                **info,
+                "ubicacion": info.get("ubicacion"),
+                "timestamp": info.get("timestamp"),
                 "status": status,
                 "localTimestamp": gmt6_timestamp.strftime('%Y-%m-%d %H:%M:%S')
             }
 
         # Guardar sin localTimestamp
         save_data = {
-            dev_id: {k: v for k, v in dev_info.items() if k != 'localTimestamp'}
+            dev_id: {
+                "ubicacion": dev_info.get("ubicacion"),
+                "timestamp": dev_info.get("timestamp"),
+                "status": dev_info.get("status")
+            }
             for dev_id, dev_info in updated_data.items()
         }
+
 
         response = requests.put(
             sas_url,
@@ -107,9 +113,22 @@ def actualizar_control_json():
         if not nuevo_json:
             return jsonify({"error": "JSON inválido o vacío"}), 400
 
+        # Orden deseado
+        orden_claves = [
+            "horasTomaFoto",
+            "intervaloRevision",
+            "blobBase",
+            "sasTokenEscritura",
+            "urlGestion",
+            "tomaInstanteanea"
+        ]
+
+        # Reordenar
+        nuevo_json_ordenado = {clave: nuevo_json.get(clave) for clave in orden_claves}
+
         put_response = requests.put(
             CONTROL_URL,
-            data=json.dumps(nuevo_json, indent=2),
+            data=json.dumps(nuevo_json_ordenado, indent=2),
             headers={
                 "x-ms-blob-type": "BlockBlob",
                 "Content-Type": "application/json"
@@ -119,7 +138,7 @@ def actualizar_control_json():
         if put_response.status_code not in [200, 201]:
             return jsonify({"error": "No se pudo guardar el archivo"}), 500
 
-        return jsonify(nuevo_json)
+        return jsonify(nuevo_json_ordenado)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
