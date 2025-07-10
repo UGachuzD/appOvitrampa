@@ -44,8 +44,9 @@ const navigateTo = (tab) => {
 
 const handleLogout = () => {
   localStorage.removeItem('token')
-  router.push('/')
+  router.push({ name: 'Login' }) // ← más robusto que usar '/'
 }
+
 </script>
 
 <style scoped>
