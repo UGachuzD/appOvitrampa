@@ -29,6 +29,14 @@
             device.ubicacion
           }}</v-card-subtitle>
           <div class="d-flex align-center justify-space-between mt-2">
+            <span class="text-caption">Latitud:</span>
+            <span class="text-caption">{{ device.latitud }}</span>
+          </div>
+          <div class="d-flex align-center justify-space-between mt-2">
+            <span class="text-caption">Longitud :</span>
+            <span class="text-caption">{{ device.longitud }}</span>
+          </div>
+          <div class="d-flex align-center justify-space-between mt-2">
             <span class="text-caption">Última señal:</span>
             <span class="text-caption">{{ device.localTimestamp }}</span>
           </div>

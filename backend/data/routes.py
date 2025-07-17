@@ -55,7 +55,9 @@ def actualizar_gestion():
                 "ubicacion": info.get("ubicacion"),
                 "timestamp": info.get("timestamp"),
                 "status": status,
-                "localTimestamp": gmt6_timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                "localTimestamp": gmt6_timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                "latitud": info.get("latitud"),
+                "longitud": info.get("longitud")
             }
 
         # Guardar sin localTimestamp
