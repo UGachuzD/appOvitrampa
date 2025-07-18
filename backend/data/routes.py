@@ -65,7 +65,9 @@ def actualizar_gestion():
             dev_id: {
                 "ubicacion": dev_info.get("ubicacion"),
                 "timestamp": dev_info.get("timestamp"),
-                "status": dev_info.get("status")
+                "status": dev_info.get("status"),
+                "latitud": dev_info.get("latitud"),
+                "longitud": dev_info.get("longitud")
             }
             for dev_id, dev_info in updated_data.items()
         }
