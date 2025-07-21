@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mapa de Colonias con Calor Precargado</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+        #sidebar {
+            width: 300px;
+            padding: 20px;
+            background: #f5f5f5;
+            overflow-y: auto;
+        }
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+        .colonia-select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .colonia-info {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 20px;
+            margin-top: 0;
+        }
+        canvas {
+            width: 1000px;
+            height: 1000px;
+            display: none;
+        }
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">Precargando mapas de calor...</div>
+    <canvas id="canva"></canvas>
+    
+    <div id="container">
+        <div id="sidebar">
+            <h1>Selector de Colonias</h1>
+            <select id="colonia-select" class="colonia-select">
+                <option value="">-- Selecciona una colonia --</option>
+            </select>
+            <div id="colonia-info" class="colonia-info" style="display: none;">
+                <h2 id="colonia-nombre"></h2>
+                <div id="colonia-detalles"></div>
+            </div>
+        </div>
+        <div id="map"></div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <!-- Scripts para el mapa de calor -->
+    <script src="heatmap/turf.min.js" charset="utf-8"></script>
+    <script src="heatmap/datos.js"></script>
+    <script src="heatmap/main.js"></script>
+    <script src="heatmap/idw.js"></script>
+
+    <script>
+        // Variables globales
+        let map;
+        let coloniasData = [];
+        let currentHighlight = null;
+        let heatmapLayers = {}; // Almacenará todas las capas de mapa de calor
+        
+        // Inicializar el mapa
+        function initMap() {
+            map = L.map('map').setView([16.8628695, -99.8870087], 12); // Coordenadas aproximadas de Acapulco
+
+            // Añadir capa base de OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Mostrar marcadores de progreso
+            progreso.forEach(data => {
+                L.marker([data.latitud,data.longitud], { radius: 4, color: "blue" }).addTo(map)
+                .bindPopup(`
+                "latitud": "${data.latitud}"<br>
+                "longitud": "${data.longitud}"<br>
+                "gid": "${data.gid}"<br>
+                "nom_col": "${data.nom_col}"<br>
+                "cantidad_huevos": ${data.cantidad_huevos}
+                `);
+            });
+            
+            // Cargar los datos de colonias
+            loadColoniasData();
+        }
+        
+        // Función para cargar los datos de colonias
+        function loadColoniasData() {
+            fetch('acapulco_colonias.json')  // Reemplaza con la ruta correcta a tu archivo JSON
+                .then(response => response.json())
+                .then(data => {
+                    // Validar que sea un FeatureCollection válido
+                    if (data.type !== 'FeatureCollection' || !data.features) {
+                        console.error('El archivo JSON no es un FeatureCollection válido');
+                        return;
+                    }
+                    
+                    // Guardar los datos para uso posterior
+                    coloniasData = data.features;
+                    
+                    // Precargar todos los mapas de calor
+                    preloadHeatmaps().then(() => {
+                        // Ocultar mensaje de carga
+                        document.getElementById('loading').style.display = 'none';
+                        
+                        // Llenar el selector de colonias
+                        populateColoniaSelect();
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al cargar los datos:', error);
+                });
+        }
+        
+        // Función para precargar todos los mapas de calor
+        function preloadHeatmaps() {
+            return new Promise((resolve) => {
+                const totalColonias = coloniasData.length;
+                let loaded = 0;
+                
+                // Actualizar mensaje de carga
+                function updateLoading() {
+                    document.getElementById('loading').textContent = 
+                        `Precargando mapas de calor... (${loaded}/${totalColonias})`;
+                    
+                    if (loaded === totalColonias) {
+                        resolve();
+                    }
+                }
+                
+                // Procesar cada colonia
+                coloniasData.forEach((feature, index) => {
+                    setTimeout(() => {
+                        try {
+                            const nombre = feature.properties.nom_col || `colonia_${index}`;
+                            const heatmapLayer = createHeatmapLayer(feature);
+                            
+                            if (heatmapLayer) {
+                                heatmapLayers[nombre] = heatmapLayer;
+                                heatmapLayer.addTo(map);
+                            }
+                            
+                            loaded++;
+                            updateLoading();
+                        } catch (error) {
+                            console.error(`Error procesando colonia ${index}:`, error);
+                            loaded++;
+                            updateLoading();
+                        }
+                    }, index * 50); // Pequeño retraso para no bloquear el navegador
+                });
+            });
+        }
+        
+        // Función para crear una capa de mapa de calor para una colonia
+        function createHeatmapLayer(feature) {
+            try {
+                // Crear puntos como GeoJson 
+                const puntosAca = feature.geometry.coordinates[0][0].map((p) => { return turf.point(p) });
+                const puntos = turf.featureCollection(puntosAca);
+                
+                // Calcular box
+                const bbox = turf.bbox(puntos);
+                const expandedBBox = expandBBox(bbox, 1.2);
+                
+                // Size del bbox
+                const width = expandedBBox[2] - expandedBBox[0];
+                const height = expandedBBox[3] - expandedBBox[1];
+                
+                //numero de celdas
+                const numCeldas = 80;
+                
+                //Calcular el tamano de cada celda
+                const cellWidth = width / numCeldas;
+                const cellHeight = height / numCeldas;
+                const cellSize = Math.max(cellWidth, cellHeight);
+
+                //Crear la malla
+                const grid = turf.squareGrid(expandedBBox, cellSize, { units: 'degrees' });
+
+                //Crear linea que representa a la Zona
+                let polygonTurf = turf.polygon([feature.geometry.coordinates[0][0]]);
+                
+                //Arreglo que guarda los puntos centrales
+                let pc = Array(grid.features.length);
+                //Arreglo que guarda los puntos que estan dentro de la Zona
+                let pi = Array(grid.features.length);
+                
+                for (let i = 0; i < grid.features.length; i++) {
+                    let center = turf.centerOfMass(grid.features[i]);
+                    pc[i] = center.geometry.coordinates;
+                    //Verificar si el punto esta dentro del poligono
+                    if (turf.booleanPointInPolygon(turf.point(pc[i]), polygonTurf)) {
+                        pi[i] = pc[i].reverse();
+                    }
+                }
+
+                // Obtener las esquinas del primer y último cuadrado de la rejilla
+                const primerCuadro = grid.features[0];
+                const ultimoCuadro = grid.features[grid.features.length - 1];
+
+                // Esquinas: [lon, lat] — tomamos el primer punto de cada cuadrado
+                const esquinaInferiorIzquierda = [
+                    primerCuadro.geometry.coordinates[0][0][1], // lat
+                    primerCuadro.geometry.coordinates[0][0][0]  // lon
+                ];
+
+                const esquinaSuperiorDerecha = [
+                    ultimoCuadro.geometry.coordinates[0][2][1], // lat
+                    ultimoCuadro.geometry.coordinates[0][2][0]  // lon
+                ];
+
+                //Interpolar usando IDW
+                let zi = Array(pi.length);
+                for (let i = 0; i < pi.length; i++) {
+                    if (pi[i]) {
+                        zi[i] = IDW(pi[i], progreso);
+                    }
+                } 
+
+                //Agregar Imagen desde Canvas 
+                const numCuadrosY = (height >= width) ? numCeldas : parseInt(grid.features.length / numCeldas);
+                const numCuadrosX = (width >= height) ? numCeldas : parseInt(grid.features.length / numCeldas);
+                
+                //Crear imagen con superficie interpolada
+                const imgSuperficie = crearSuperficieInterpolada(numCuadrosX, numCuadrosY, zi);
+                
+                return L.imageOverlay(
+                    imgSuperficie,
+                    [
+                        esquinaInferiorIzquierda,
+                        esquinaSuperiorDerecha
+                    ],
+                    {
+                        opacity: 0.7,
+                        interactive: false
+                    }
+                );
+            } catch (error) {
+                console.error('Error creando mapa de calor:', error);
+                return null;
+            }
+        }
+        
+        // Función para llenar el selector de colonias
+        function populateColoniaSelect() {
+            const select = document.getElementById('colonia-select');
+            
+            // Ordenar colonias alfabéticamente
+            coloniasData.sort((a, b) => {
+                const nameA = a.properties.nom_col || '';
+                const nameB = b.properties.nom_col || '';
+                return nameA.localeCompare(nameB);
+            });
+            
+            // Agregar opciones al select
+            coloniasData.forEach((feature, index) => {
+                const nombre = feature.properties.nom_col || `Colonia ${index}`;
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = nombre;
+                select.appendChild(option);
+            });
+            
+            // Manejar el cambio de selección
+            select.addEventListener('change', function() {
+                const selectedIndex = this.value;
+                if (selectedIndex === "") {
+                    clearHighlight();
+                    document.getElementById('colonia-info').style.display = 'none';
+                    return;
+                }
+                
+                highlightSelectedColonia(selectedIndex);
+            });
+        }
+        
+        // Función para resaltar la colonia seleccionada
+        function highlightSelectedColonia(index) {
+            const feature = coloniasData[index];
+            const nombre = feature.properties.nom_col || 'Colonia desconocida';
+            
+            // Limpiar resaltado anterior
+            clearHighlight();
+            
+            // Mostrar información en el sidebar
+            document.getElementById('colonia-nombre').textContent = nombre;
+            document.getElementById('colonia-info').style.display = 'block';
+            
+            // Mostrar detalles adicionales si existen
+            const detallesDiv = document.getElementById('colonia-detalles');
+            detallesDiv.innerHTML = '';
+            
+            // Agregar propiedades adicionales
+            for (const [key, value] of Object.entries(feature.properties)) {
+                if (key !== 'nom_col') {
+                    const p = document.createElement('p');
+                    p.innerHTML = `<strong>${key}:</strong> ${value}`;
+                    detallesDiv.appendChild(p);
+                }
+            }
+            
+            // Crear y mostrar el polígono de resaltado
+            currentHighlight = L.geoJSON(feature, {
+                style: {
+                    color: '#FF0000', // Rojo para el resaltado
+                    weight: 3,
+                    fillColor: '#FF0000',
+                    fillOpacity: 0 // Ligero relleno para mejor visibilidad
+                }
+            }).addTo(map);
+            
+            // Centrar el mapa en el polígono
+            map.fitBounds(currentHighlight.getBounds());
+        }
+        
+        // Función para limpiar el resaltado
+        function clearHighlight() {
+            if (currentHighlight) {
+                map.removeLayer(currentHighlight);
+                currentHighlight = null;
+            }
+        }
+        
+        // Función para expandir el bbox
+        function expandBBox(bbox, factor) {
+            const width = bbox[2] - bbox[0];
+            const height = bbox[3] - bbox[1];
+            const newWidth = width * factor;
+            const newHeight = height * factor;
+            const centerX = (bbox[0] + bbox[2]) / 2;
+            const centerY = (bbox[1] + bbox[3]) / 2;
+            
+            return [
+                centerX - newWidth / 2,
+                centerY - newHeight / 2,
+                centerX + newWidth / 2,
+                centerY + newHeight / 2
+            ];
+        }
+        
+        // Inicializar el mapa cuando la página cargue
+        window.onload = initMap;
+    </script>
+</body>
+</html>

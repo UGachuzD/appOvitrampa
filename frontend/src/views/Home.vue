@@ -11,7 +11,7 @@
                 </v-window-item>
 
                 <v-window-item value="mapa">
-                  <MapaOvitrampas />
+                  <TestComponent />
                 </v-window-item>
 
                 <v-window-item value="settings">
@@ -34,6 +34,7 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import MonitorPanel from '@/components/MonitorPanel.vue'
 import MapaOvitrampas from '@/components/MapaOvitrampas.vue'
 import SettingsPanel from '@/components/SettingsPanel.vue'
+import TestComponent from '@/components/Test.vue'
 
 const activeTab = ref('monitor')
 const router = useRouter()
