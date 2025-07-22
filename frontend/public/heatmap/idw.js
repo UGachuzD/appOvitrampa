@@ -31,7 +31,7 @@ function getC(v, maximo) {
 }
 
 ///Funcion que crea una imagen de una superficie interpolada usando idw
-function crearSuperficieInterpolada(numCuadrosX, numCuadrosY, zi) {
+function crearSuperficieInterpolada(numCuadrosX, numCuadrosY, zi, maximoHuevos) {
 
     const canva = document.getElementById('canva');
     const ctx = canva.getContext('2d');
@@ -50,7 +50,7 @@ function crearSuperficieInterpolada(numCuadrosX, numCuadrosY, zi) {
     for (let i = 0; i < numCuadrosX; i++) {
         for (let k = 0; k < numCuadrosY; k++) {
             if (zi[w]) {
-                ctx.fillStyle = getC(zi[w], 84);
+                ctx.fillStyle = getC(zi[w], maximoHuevos);
                 ctx.fillRect(i * tamCuadroX - e, j * tamCuadroY - e, tamCuadroX + e, tamCuadroY + e);
             }
             w++;

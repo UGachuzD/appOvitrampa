@@ -101,6 +101,7 @@
       let coloniasData = [];
       let currentHighlight = null;
       let heatmapLayers = {}; // Almacenará todas las capas de mapa de calor
+      let maximoHuevos = 0;
 
       // Inicializar el mapa
 function initMap() {
@@ -115,6 +116,8 @@ function initMap() {
         .then(response => response.json())
         .then(data => {
             const progreso = data;
+            maximoHuevos = Math.max(...progreso.map(item => item.cantidad_huevos));
+            console.log("Maximo de huevos:", maximoHuevos);
             window.progreso = progreso;
 
             progreso.forEach(item => {
@@ -291,7 +294,8 @@ function initMap() {
           const imgSuperficie = crearSuperficieInterpolada(
             numCuadrosX,
             numCuadrosY,
-            zi
+            zi,
+            maximoHuevos
           );
 
           return L.imageOverlay(
