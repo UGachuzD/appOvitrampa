@@ -1,5 +1,23 @@
+/* const colors = [
+    "#0f99dd", "#b6cbd1ff", "#68dca7", "#e3f46c", "#fcfd61", "#fecf4f", "#fea43d", "#fa4815", '#FF2400'
+]; */
+
+/* const colors = [
+    "#0a7cb1", "#0f99dd", "#35bbdd", "#5ad4e0", 
+    "#68dca7", "#8fe48e", "#b6ec75", "#e3f46c", 
+    "#fcfd61", "#fee758", "#fecf4f", "#feb746", 
+    "#fea43d", "#fd8a2e", "#fa7020", "#fa4815", 
+    "#FF2400"
+]; */
+
 const colors = [
-    "#0f99dd", "#35bbdd", "#68dca7", "#e3f46c", "#fcfd61", "#fecf4f", "#fea43d", "#fa4815", '#FF2400'
+    "#065a8c", "#0a7cb1", "#0f99dd", "#2aafdf", "#35bbdd", 
+    "#4acce2", "#5ad4e0", "#66d9c1", "#68dca7", "#76df96", 
+    "#8fe48e", "#a0e87a", "#b6ec75", "#c9f06d", "#e3f46c", 
+    "#f2fb62", "#fcfd61", "#fef159", "#fee758", "#fedb52", 
+    "#fecf4f", "#fec248", "#feb746", "#fea43d", "#fe9739", 
+    "#fd8a2e", "#fc7c25", "#fa7020", "#fa5a18", "#fa4815", 
+    "#ff3807", "#FF2400"
 ];
 
 //Funcion de interpolacion espacial IDW
