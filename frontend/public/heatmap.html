@@ -75,6 +75,11 @@
     <div id="container">
       <div id="sidebar">
         <h1>Selector de Colonias</h1>
+        <label>
+          <input type="checkbox" id="toggle-markers" checked />
+          Mostrar marcadores
+        </label>
+
         <select id="colonia-select" class="colonia-select">
           <option value="">-- Selecciona una colonia --</option>
         </select>
@@ -103,41 +108,59 @@
       let heatmapLayers = {}; // Almacenará todas las capas de mapa de calor
       let maximoHuevos = 0;
 
-      // Inicializar el mapa
-function initMap() {
-    map = L.map('map').setView([16.8628695, -99.8870087], 12);
+      let markers = []; // <-- Lista global de marcadores
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+      function initMap() {
+        map = L.map("map").setView([16.8628695, -99.8870087], 12);
 
-    // Ahora progreso será cargado antes de llamar a loadColoniasData()
-    fetch('heatmap/datos.json')
-        .then(response => response.json())
-        .then(data => {
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors",
+        }).addTo(map);
+
+        fetch("heatmap/datos.json")
+          .then((response) => response.json())
+          .then((data) => {
             const progreso = data;
-            maximoHuevos = Math.max(...progreso.map(item => item.cantidad_huevos));
-            console.log("Maximo de huevos:", maximoHuevos);
+            maximoHuevos = Math.max(
+              ...progreso.map((item) => item.cantidad_huevos)
+            );
             window.progreso = progreso;
 
-            progreso.forEach(item => {
-                L.marker([item.latitud, item.longitud], { radius: 4, color: "blue" })
-                    .addTo(map)
-                    .bindPopup(`
-                    "latitud": "${item.latitud}"<br>
-                    "longitud": "${item.longitud}"<br>
-                    "gid": "${item.gid}"<br>
-                    "nom_col": "${item.nom_col}"<br>
-                    "cantidad_huevos": ${item.cantidad_huevos}
-                    `);
+            progreso.forEach((item) => {
+              const marker = L.marker([item.latitud, item.longitud], {
+                radius: 4,
+                color: "blue",
+              }).addTo(map).bindPopup(`
+                  "latitud": "${item.latitud}"<br>
+                  "longitud": "${item.longitud}"<br>
+                  "gid": "${item.gid}"<br>
+                  "nom_col": "${item.nom_col}"<br>
+                  "cantidad_huevos": ${item.cantidad_huevos}
+                `);
+              markers.push(marker); // Guardar marcador
             });
 
-            // Luego de cargar progreso, cargar colonias
             loadColoniasData();
-        })
-        .catch(error => console.error('Error al cargar progreso.json:', error));
-}
+          })
+          .catch((error) =>
+            console.error("Error al cargar progreso.json:", error)
+          );
+      }
 
+      document.addEventListener("DOMContentLoaded", () => {
+        document
+          .getElementById("toggle-markers")
+          .addEventListener("change", function () {
+            const visible = this.checked;
+            markers.forEach((marker) => {
+              if (visible) {
+                marker.addTo(map);
+              } else {
+                map.removeLayer(marker);
+              }
+            });
+          });
+      });
 
       // Función para cargar los datos de colonias
       function loadColoniasData() {
