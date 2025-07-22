@@ -1,5 +1,5 @@
 // bbox = [minX, minY, maxX, maxY]
-function expandBBox(bbox, factor = 1.2) {
+function expandBBox(bbox, factor = 1) {
   const [minX, minY, maxX, maxY] = bbox;
 
   const width = maxX - minX;

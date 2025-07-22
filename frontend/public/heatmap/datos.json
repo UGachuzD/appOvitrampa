@@ -198,5 +198,13 @@
             "nom_col": "PROGRESO",
             "cantidad_huevos": 57
 
+        },
+        {
+            "latitud": "16.880828",
+            "longitud": "-99.858076",
+            "gid": "25413",
+            "nom_col": "PROGRESO",
+            "cantidad_huevos": 84
+
         }
     ]

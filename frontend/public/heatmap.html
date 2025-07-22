@@ -218,14 +218,14 @@ function initMap() {
 
           // Calcular box
           const bbox = turf.bbox(puntos);
-          const expandedBBox = expandBBox(bbox, 1.2);
+          const expandedBBox = expandBBox(bbox, 1);
 
           // Size del bbox
           const width = expandedBBox[2] - expandedBBox[0];
           const height = expandedBBox[3] - expandedBBox[1];
 
           //numero de celdas
-          const numCeldas = 80;
+          const numCeldas = 131;
 
           //Calcular el tamano de cada celda
           const cellWidth = width / numCeldas;
@@ -369,8 +369,8 @@ function initMap() {
         // Crear y mostrar el polígono de resaltado
         currentHighlight = L.geoJSON(feature, {
           style: {
-            color: "#FF0000", // Rojo para el resaltado
-            weight: 3,
+            color: "#017701", // Verde para el resaltado
+            weight: 4,
             fillColor: "#FF0000",
             fillOpacity: 0, // Ligero relleno para mejor visibilidad
           },
