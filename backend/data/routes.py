@@ -6,9 +6,147 @@ from dotenv import load_dotenv
 import os
 import csv
 
+from flask import request, jsonify
+import os
+import cv2
+import numpy as np
+from PIL import Image
+import json
+from azure.storage.blob import ContainerClient, BlobClient, ContentSettings 
+import shutil
+
+
 load_dotenv()
 
 data_bp = Blueprint('data', __name__)
+
+# ======================
+# FUNCIONES PARA CONTEO DE HUEVOS
+# ======================
+
+def obtenerInfoUbicacion(sasUrlJson):
+    blobClient = BlobClient.from_blob_url(sasUrlJson)
+    datosJson = blobClient.download_blob().readall()
+    infoUbicaciones = json.loads(datosJson)
+
+    resultado = {}
+    for identificador, info in infoUbicaciones.items():
+        lat = info.get("latitud")
+        lon = info.get("longitud")
+        resultado[identificador] = {"latitud": lat, "longitud": lon}
+
+    return resultado
+
+
+def descargarImgs(sasUrl, identificador, directorioSalida):
+    os.makedirs(directorioSalida, exist_ok=True)
+    containerClient = ContainerClient.from_container_url(sasUrl)
+
+    for blob in containerClient.list_blobs():
+        if identificador in blob.name:
+            rutaLocal = os.path.join(directorioSalida, os.path.basename(blob.name))
+            with open(rutaLocal, "wb") as file:
+                datos = containerClient.download_blob(blob)
+                file.write(datos.readall())
+
+
+def procesarImagen(rutaImagen, areaMin=300, areaMax=450):
+    pilImage = Image.open(rutaImagen).convert("RGB")
+    imagen = np.array(pilImage)
+    imagen = cv2.cvtColor(imagen, cv2.COLOR_RGB2BGR)
+    imagenRedimensionada = cv2.resize(imagen, (400, 400))
+    gris = cv2.cvtColor(imagenRedimensionada, cv2.COLOR_BGR2GRAY)
+    filtrada = cv2.medianBlur(gris, 5)
+
+    binTemp = cv2.adaptiveThreshold(
+        filtrada, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV,
+        11, 2
+    )
+
+    contornos, _ = cv2.findContours(binTemp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    huevosValidos = [cnt for cnt in contornos if areaMin < cv2.contourArea(cnt) < areaMax]
+
+    return len(huevosValidos)
+
+
+def contarHuevosEnCarpeta(carpetaImagenes, identificador):
+    totalHuevos = 0
+    for nombreArchivo in os.listdir(carpetaImagenes):
+        if nombreArchivo.lower().endswith((".jpg", ".png", ".jpeg")):
+            rutaImagen = os.path.join(carpetaImagenes, nombreArchivo)
+            cantidad = procesarImagen(rutaImagen)
+            totalHuevos += cantidad
+    return totalHuevos
+
+
+
+data_bp = Blueprint('data', __name__)
+
+@data_bp.route('/api/huevos', methods=['POST'])
+def obtenerNumeroHuevos():
+    try:
+        sasUrlImgs = os.getenv('SAS_TOKEN_IMAGENES')
+        sasUrlJson = os.getenv('SAS_TOKEN_GESTION')
+        sasUrlDatos = os.getenv('SAS_TOKEN_DATOS') 
+
+        identificadores = ["OVI-AEAA6C", "OVI-FIBONA"]
+
+        if not sasUrlImgs or not sasUrlJson or not sasUrlDatos:
+            return jsonify({"error": "Faltan parámetros obligatorios"}), 400
+
+        carpetaRaizImgs = "imgs"
+
+        if os.path.exists(carpetaRaizImgs):
+            shutil.rmtree(carpetaRaizImgs)
+        os.makedirs(carpetaRaizImgs, exist_ok=True)
+
+        infoUbicaciones = obtenerInfoUbicacion(sasUrlJson)
+        resultados = []
+
+        for identificador in identificadores:
+            subcarpeta = os.path.join(carpetaRaizImgs, identificador)
+            descargarImgs(sasUrlImgs, identificador, subcarpeta)
+            totalHuevos = contarHuevosEnCarpeta(subcarpeta, identificador)
+
+            datosUbicacion = infoUbicaciones.get(identificador, {})
+            latitud = datosUbicacion.get("latitud", "")
+            longitud = datosUbicacion.get("longitud", "")
+
+            resultados.append({
+                "latitud": latitud,
+                "longitud": longitud,
+                "gid": identificador,
+                "cantidad_huevos": totalHuevos
+            })
+
+        # Guardar el JSON en Azure Blob Storage (sobrescribir)
+        blob_client = BlobClient.from_blob_url(sasUrlDatos)
+        blob_client.upload_blob(
+            json.dumps(resultados, ensure_ascii=False, indent=4),
+            overwrite=True,
+            content_settings=ContentSettings(content_type="application/json") 
+        )
+
+        return jsonify(resultados), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@data_bp.route('/api/datosJSON', methods=['GET'])
+def obtener_datos():
+    sas_url_datosJson = os.getenv("SAS_TOKEN_DATOS")
+
+    try:
+        response = requests.get(sas_url_datosJson)
+        response.raise_for_status()
+        data = response.json()
+        return jsonify(data)
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'No se pudieron obtener los datos', 'detalle': str(e)}), 500
+
 
 @data_bp.route('/api/ovitrampas', methods=['GET'])
 def get_ovitrampa_data():
@@ -49,7 +187,7 @@ def actualizar_gestion():
             gmt6_timestamp = utc_timestamp - timedelta(hours=6)
             diff_minutes = (now - utc_timestamp).total_seconds() / 60
 
-            status = "Inactivo" if diff_minutes > 1 else "Activo"
+            status = "Inactivo" if diff_minutes > 180 else "Activo"
 
             updated_data[device_id] = {
                 "ubicacion": info.get("ubicacion"),

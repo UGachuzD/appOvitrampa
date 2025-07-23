@@ -117,7 +117,7 @@
           attribution: "&copy; OpenStreetMap contributors",
         }).addTo(map);
 
-        fetch("heatmap/datos.json")
+        fetch("http://127.0.0.1:5000/api/datosJSON")
           .then((response) => response.json())
           .then((data) => {
             const progreso = data;
@@ -134,7 +134,6 @@
                   "latitud": "${item.latitud}"<br>
                   "longitud": "${item.longitud}"<br>
                   "gid": "${item.gid}"<br>
-                  "nom_col": "${item.nom_col}"<br>
                   "cantidad_huevos": ${item.cantidad_huevos}
                 `);
               markers.push(marker); // Guardar marcador
