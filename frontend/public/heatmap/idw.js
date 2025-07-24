@@ -22,7 +22,7 @@ const colors = [
 
 //Funcion de interpolacion espacial IDW
 function IDW(centro, puntos) {
-    let exp = 1.5;
+    let exp = 0.8;
     let d = 0;
     let s1 = 0 // new Array();
     let s2 = 0 // new Array();
