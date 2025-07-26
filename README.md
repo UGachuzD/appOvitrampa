@@ -8,12 +8,13 @@ Este repositorio cuenta con el código fuente del frontend y backend empleado en
 
 - [Tecnologías utilizadas](#tecnologias-utilizadas)
 - [Estructura del proyecto](#estructura-del-proyecto)
+- [Levantar proyecto](#levantar-proyecto)
 - [Autores](#autores)
 - [Licencia](#licencia)
 
 ---
 
-## ⚙️ Tecnologías utilizadas
+## Tecnologías utilizadas
 
 ### Frontend
 - [ ] Vue
@@ -31,7 +32,7 @@ Este repositorio cuenta con el código fuente del frontend y backend empleado en
 
 ---
 
-## 🧱 Estructura del proyecto
+## Estructura del proyecto
 
 ```bash
 /
@@ -50,13 +51,13 @@ Este repositorio cuenta con el código fuente del frontend y backend empleado en
 └── README.md
 ```
 
-## 🖥️ Leventar proyecto
+## Leventar proyecto
 
 Para poder ejecutar el proyecto de manera local, es necesario seguir los siguientes pasos:
 
 1. Clonar el respositorio por medio del comando desde terminal:
 ```bash
-git clone [text](https://github.com/UGachuzD/appOvitrampa.git)
+git clone https://github.com/UGachuzD/appOvitrampa.git
 ```
 2. Acceder a la ruta en donde se guardo el archivo y dirigirse a la ruta en donde se encuentra el frontend, una vez dentro ejecutar el siguiente comando:
 ```bash
@@ -95,11 +96,11 @@ SAS_TOKEN_DATOS = "https://<account>.blob.core.windows.net/<container>/<blob>?<S
 python app.py
 ```
 
-## 👥 Autores
-- [text](https://github.com/UGachuzD)
-- [text](https://github.com/AuthenticAsp)
+## Autores
+- github.com/UGachuzD
+- github.com/AuthenticAsp
 
-## 📋 Licencia
+## Licencia
 © 2025 Ulises Gachuz. Todos los derechos reservados.
 
 Este proyecto fue desarrollado como parte de una estancia de investigación en la Facultad de Matemáticas de la Universidad Autónoma de Guerrero.
